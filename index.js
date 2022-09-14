@@ -3,26 +3,41 @@ const argv = require('minimist')(process.argv.slice(2));
 const fs = require('fs');
 const hexvault = require('hexvault');
 const recursive = require("recursive-readdir");
+const cliProgress = require('cli-progress');
+
+const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 
 let total = 0;
 let current = 0;
 let inProgress = 0;
 
-(function main() {
-    // Validation
-    validate();
+(function setup() {
+    if (!argv.target && !argv.t) {
+        argv.target = '.';
+    } else if (!argv.target) {
+        argv.target = argv.t;
+    }
+    if (!argv.secret) argv.secret = argv.s;
+
+    main();
 })()
+
+
+
+function main() {
+    validate();
+}
 function validate() {
     // --secret is not defined
     if (!argv.secret) {
-        console.error('You must provide a valid secret password.');
-        process.exit(1);
+        // Applying minimal
+        argv.secret = 1;
     }
 
     // -l and -u are either both defined or both undefined
     if (argv.l && argv.u || !argv.l && !argv.u) {
-        console.error('You must provide a valid intent.');
-        process.exit(1);
+        // Assuming lock
+        argv.l = true;
     }
 
     // Check if given target is valid
@@ -35,7 +50,8 @@ function validate() {
         if (stats.isFile()) {
             total = 1;
             current = 1;
-            console.log('[' + current + '/' + total + ']');
+            bar1.start(1, 0);
+            // console.log('[' + current + '/' + total + ']');
             single(argv.target)
         } else if (stats.isDirectory()) {
             multi(argv.target)
@@ -80,12 +96,14 @@ function single(file) {
         }
     }
     current--;
-    console.log('[' + current + '/' + total + ']');
+    bar1.update(total - current);
+    if (current == 0) bar1.stop();
+    // console.log('[' + current + '/' + total + ']');
 }
 function multi(dir) {
+    let list = [];
     if (argv.r) {
         recursive(dir, function (err, files) {
-            let list = [];
 
             files.forEach(file => {
                 // Only process if match with RegExp
@@ -101,15 +119,35 @@ function multi(dir) {
             })
             total = list.length;
             current = list.length;
-            list.forEach(file => {
-                checkInProgress(() => {
-                    single(file);
-                })
-            })
+            bar1.start(total, 0);
+            processAll(list);
         });
     } else {
-        console.log('not recursive');
+        fs.readdir(dir, (error, files) => {
+            if (error) {
+                console.error('Unable to read dir.');
+                process.exit(1);
+            } else {
+                files.forEach(file => {
+                    let stats = fs.statSync(file);
+                    if (stats.isFile()) {
+                        list.push(file)
+                    }
+                });
+                total = list.length;
+                current = list.length;
+                bar1.start(total, 0);
+                processAll(list);
+            }
+        });
     }
+}
+function processAll(list) {
+    list.forEach(file => {
+        checkInProgress(() => {
+            single(file);
+        })
+    })
 }
 function checkInProgress(cb) {
     if (inProgress >= 5) {

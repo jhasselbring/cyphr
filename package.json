@@ -10,6 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cli-progress": "^3.11.2",
     "hexvault": "^2.1.1",
     "minimist": "^1.2.6",
     "recursive-readdir": "^2.2.2"
