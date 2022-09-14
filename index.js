@@ -10,19 +10,33 @@ const bar1 = new cliProgress.SingleBar({}, cliProgress.Presets.shades_classic);
 let total = 0;
 let current = 0;
 let inProgress = 0;
+let list = [];
 
-(function setup() {
+if (argv.help || argv.h) {
+    console.log(`--disqualifier   -d      Sets disqualifying regex.`);
+    console.log(`--help           -h      Displays help message.`);
+    console.log(`                 -l/-u   Sets mode.`);
+    console.log(`                 -r      Enables recursive.`);
+    console.log(`--qualifier      -q      Sets qualifying regex.`);
+    console.log(`--secret         -s      Sets encoder.`);
+    console.log(`--target         -t      Sets target file or directory.`);
+} else {
+    setup();
+}
+
+
+function setup() {
     if (!argv.target && !argv.t) {
         argv.target = '.';
     } else if (!argv.target) {
         argv.target = argv.t;
     }
-    if (!argv.secret) argv.secret = argv.s;
+    if (!argv.secret && argv.s) argv.secret = argv.s;
+    if (!argv.qualifier && argv.q) argv.qualifier = argv.q;
+    if (!argv.disqualifier && argv.d) argv.disqualifier = argv.d;
 
     main();
-})()
-
-
+}
 
 function main() {
     validate();
@@ -61,7 +75,7 @@ function validate() {
 }
 function single(file) {
     if (argv.l) {
-        if (argv.d) {
+        if (argv.x) {
             console.log('Will lock ' + file);
         } else {
             inProgress++;
@@ -78,7 +92,7 @@ function single(file) {
             });
         }
     } else {
-        if (argv.d) {
+        if (argv.x) {
             console.log('Will lock ' + file);
         } else {
             inProgress++;
@@ -101,21 +115,11 @@ function single(file) {
     // console.log('[' + current + '/' + total + ']');
 }
 function multi(dir) {
-    let list = [];
     if (argv.r) {
         recursive(dir, function (err, files) {
 
             files.forEach(file => {
-                // Only process if match with RegExp
-                if (argv.qualifier) {
-                    var tester = new RegExp(argv.qualifier);
-                    let baseName = path.basename(file);
-                    if (tester.test(baseName)) {
-                        list.push(file);
-                    }
-                } else {
-                    list.push(file);
-                }
+                pushIfQualified(file);
             })
             total = list.length;
             current = list.length;
@@ -131,7 +135,7 @@ function multi(dir) {
                 files.forEach(file => {
                     let stats = fs.statSync(file);
                     if (stats.isFile()) {
-                        list.push(file)
+                        pushIfQualified(file)
                     }
                 });
                 total = list.length;
@@ -141,6 +145,29 @@ function multi(dir) {
             }
         });
     }
+}
+function pushIfQualified(file) {
+    if (argv.qualifier) {
+        var tester = new RegExp(argv.qualifier);
+        let baseName = path.basename(file);
+        if (tester.test(baseName)) {
+            list.push(file);
+            return;
+        } else {
+            return;
+        }
+    }
+    if (argv.disqualifier) {
+        var tester = new RegExp(argv.disqualifier);
+        let baseName = path.basename(file);
+        if (tester.test(baseName)) {
+            return;
+        } else {
+            list.push(file);
+            return;
+        }
+    }
+    list.push(file);
 }
 function processAll(list) {
     list.forEach(file => {
