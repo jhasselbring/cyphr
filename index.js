@@ -16,43 +16,34 @@ if (argv.help || argv.h) {
     console.log(`--disqualifier   -d      Sets disqualifying regex.`);
     console.log(`--help           -h      Displays help message.`);
     console.log(`                 -l/-u   Sets mode.`);
-    console.log(`                 -r      Enables recursive.`);
+    console.log(`--parallels      -p      Sets how many files can be processed simultanously.`);
     console.log(`--qualifier      -q      Sets qualifying regex.`);
+    console.log(`                 -r      Enables recursive.`);
     console.log(`--secret         -s      Sets encoder.`);
     console.log(`--target         -t      Sets target file or directory.`);
+    console.log(`                 -x      Enables dry run mode.`);
 } else {
     setup();
 }
 
 
 function setup() {
-    if (!argv.target && !argv.t) {
-        argv.target = '.';
-    } else if (!argv.target) {
-        argv.target = argv.t;
-    }
-    if (!argv.secret && argv.s) argv.secret = argv.s;
-    if (!argv.qualifier && argv.q) argv.qualifier = argv.q;
     if (!argv.disqualifier && argv.d) argv.disqualifier = argv.d;
-
-    main();
-}
-
-function main() {
-    validate();
-}
-function validate() {
-    // --secret is not defined
-    if (!argv.secret) {
-        // Applying minimal
-        argv.secret = 1;
-    }
+    if (!argv.parallels && argv.p) argv.parallels = argv.p;
+    if (!argv.parallels) argv.parallels = 5;
+    if (!argv.qualifier && argv.q) argv.qualifier = argv.q;
+    if (!argv.secret && argv.s) argv.secret = argv.s;
+    if (!argv.secret) argv.secret = 1;
+    if (!argv.target && argv.t) argv.target = argv.t;
 
     // -l and -u are either both defined or both undefined
     if (argv.l && argv.u || !argv.l && !argv.u) {
         // Assuming lock
         argv.l = true;
     }
+    main();
+}
+function main() {
 
     // Check if given target is valid
     if (!fs.existsSync(argv.target)) {
@@ -177,10 +168,10 @@ function processAll(list) {
     })
 }
 function checkInProgress(cb) {
-    if (inProgress >= 5) {
+    if (inProgress >= parseInt(argv.parallels)) {
         setTimeout(() => {
             checkInProgress(cb)
-        }, 1000);
+        }, 100);
     } else {
         cb();
     }
