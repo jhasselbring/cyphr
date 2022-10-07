@@ -148,18 +148,14 @@ function single(file) {
             }
             hexvault.lock(file, file + '.lock', argv.secret)
             .then(result => {
-                console.log('Success ', result);
                 if (!argv.k) {
-                    console.log('deleting ', file);
                     deleteFile(file, () => {
-                        console.log('renaming ', file);
                         rename(file + '.lock', file, () => {
                             inProgress--;
                         });
                     })
                 }
             }).catch(result => {
-                console.warn('Failed ', result)
                 inProgress--;
             });
         }
@@ -174,7 +170,6 @@ function single(file) {
             }
             hexvault.unlock(file, file + '.lock', argv.secret)
             .then(result => {
-                console.log('Success ', result);
                 if (!argv.k) {
                     deleteFile(file, () => {
                         rename(file + '.lock', file, () => {
@@ -183,7 +178,6 @@ function single(file) {
                     })
                 }
             }).catch(result => {
-                console.warn('Failed ', result)
                 inProgress--;
             });
         }
