@@ -1,6 +1,6 @@
 {
   "name": "cyphr",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -12,7 +12,7 @@
   "license": "ISC",
   "dependencies": {
     "cli-progress": "^3.11.2",
-    "hexvault": "file:../hexvault",
+    "hexvault": "^4.0.0",
     "minimist": "^1.2.6",
     "recursive-readdir": "^2.2.2"
   },
