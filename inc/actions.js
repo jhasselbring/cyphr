@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const hexvault = require('hexvault');
 const recursive = require("recursive-readdir");
 let { total, current, inProgress, list, loadingBar } = require("./state.js");
 let argv;
@@ -146,18 +145,18 @@ function single(file) {
             if (fs.existsSync(file + '.lock')) {
                 fs.unlinkSync(file + '.lock');
             }
-            hexvault.lock(file, file + '.lock', argv.secret)
-            .then(result => {
-                if (!argv.k) {
-                    deleteFile(file, () => {
-                        rename(file + '.lock', file, () => {
-                            inProgress--;
-                        });
-                    })
-                }
-            }).catch(result => {
-                inProgress--;
-            });
+            lock(file, file + '.lock', argv.secret)
+                .then(result => {
+                    if (!argv.k) {
+                        deleteFile(file, () => {
+                            rename(file + '.lock', file, () => {
+                                inProgress--;
+                            });
+                        })
+                    }
+                }).catch(result => {
+                    inProgress--;
+                });
         }
     } else {
         if (argv.x) {
@@ -168,18 +167,18 @@ function single(file) {
             if (fs.existsSync(file + '.lock')) {
                 fs.unlinkSync(file + '.lock');
             }
-            hexvault.unlock(file, file + '.lock', argv.secret)
-            .then(result => {
-                if (!argv.k) {
-                    deleteFile(file, () => {
-                        rename(file + '.lock', file, () => {
-                            inProgress--;
-                        });
-                    })
-                }
-            }).catch(result => {
-                inProgress--;
-            });
+            unlock(file, file + '.lock', argv.secret)
+                .then(result => {
+                    if (!argv.k) {
+                        deleteFile(file, () => {
+                            rename(file + '.lock', file, () => {
+                                inProgress--;
+                            });
+                        })
+                    }
+                }).catch(result => {
+                    inProgress--;
+                });
         }
     }
     current--;
@@ -187,6 +186,93 @@ function single(file) {
     if (current == 0) loadingBar.stop();
     // console.log('[' + current + '/' + total + ']');
 }
+const lock = (input, output, offset) => {
+    return new Promise((resolve, reject) => {
+        let readStream = fs.createReadStream(input);
+        let writeStream = fs.createWriteStream(output);
+        let ended = false;
+        readStream.on('data', chunk => {
+            let pendingArray = [];
+            for (const value of chunk.values()) {
+                pendingArray.push(value + offset);
+                if (typeof value != 'number') {
+                    console.log('Not a number');
+                }
+            }
+            let chunkBuffer = Buffer.from(pendingArray);
+            // console.log('chunkBuffer', chunkBuffer)
+            writeStream.write(chunkBuffer, error => {
+                if (error) {
+                    console.error('Oh no! ', error);
+                }
+                if (ended == true) {
+                    writeStream.end();
+                    resolve({ success: true });
+                }
+            })
+        });
+
+        // Read has ended but don't return yet because write might not be done
+        readStream.on('end', () => {
+            ended = true;
+        });
+        // Reject immediately on error
+        readStream.on('error', () => {
+            writeStream.end();
+            reject({ success: false });
+        })
+        // Reject immediately on error
+        writeStream.on('error', () => {
+            writeStream.end();
+            reject({ success: false });
+        });
+    })
+}
+const unlock = (input, output, offset) => {
+    return new Promise((resolve, reject) => {
+        let readStream = fs.createReadStream(input);
+        let writeStream = fs.createWriteStream(output);
+        let ended = false;
+        readStream.on('data', chunk => {
+            let pendingArray = [];
+            for (const value of chunk.values()) {
+                pendingArray.push(value - offset);
+                if (typeof value != 'number') {
+                    console.log('Not a number');
+                }
+            }
+            let chunkBuffer = Buffer.from(pendingArray);
+            // console.log('chunkBuffer', chunkBuffer)
+            writeStream.write(chunkBuffer, error => {
+                if (error) {
+                    console.error('Oh no! ', error);
+                }
+                if (ended == true) {
+                    writeStream.end();
+                    resolve({ success: true });
+                }
+            })
+        });
+
+        // Read has ended but don't return yet because write might not be done
+        readStream.on('end', () => {
+            ended = true;
+
+        });
+        // Reject immediately on error
+        readStream.on('error', () => {
+            writeStream.end();
+            reject({ success: false });
+        })
+
+        // Reject immediately on error
+        writeStream.on('error', () => {
+            writeStream.end();
+            reject({ success: false });
+        });
+    })
+}
+
 exports.deleteFile = deleteFile;
 exports.rename = rename;
 exports.setup = setup;
