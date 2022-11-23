@@ -8,5 +8,6 @@ exports.showHelp = () => {
     console.log(`                 -r      Enables recursive.`);
     console.log(`--secret         -s      Sets encoder.`);
     console.log(`--target         -t      Sets target file or directory.`);
+    console.log(`                 -v      Selects which method to use.`);
     console.log(`                 -x      Enables dry run mode.`);
 }

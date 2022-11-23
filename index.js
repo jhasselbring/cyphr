@@ -4,7 +4,6 @@ const { showHelp } = require('./inc/help.js');
 const { setup, single, multi } = require("./inc/actions.js");
 let { loadingBar } = require("./inc/state.js");
 
-
 if (argv.help || argv.h) {
     showHelp();
 } else {

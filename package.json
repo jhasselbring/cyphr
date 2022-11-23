@@ -1,18 +1,17 @@
 {
   "name": "cyphr",
-  "version": "3.1.0",
+  "version": "3.2.1",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "pkg index.js --target=node16-win-x64",
-    "install:local": "npm i ../hexvault && npm i . -g"
+    "build": "pkg index.js --target=node16-win-x64"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cli-progress": "^3.11.2",
-    "hexvault": "^4.0.0",
+    "cyphr-locker": "^3.1.0",
     "minimist": "^1.2.6",
     "recursive-readdir": "^2.2.2"
   },
