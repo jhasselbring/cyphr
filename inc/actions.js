@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
-const {lock, unlock} = require('cyphr-locker');
+const { lock, unlock } = require('cyphr-locker');
 
 const recursive = require("recursive-readdir");
 let { total, current, inProgress, list, loadingBar } = require("./state.js");
 let argv;
 let ext = '.cyphr3';
 
-function setup(params) {
+function etlParams(params) {
     argv = params;
     if (!argv.disqualifier && argv.d) argv.disqualifier = argv.d;
     if (!argv.parallels && argv.p) argv.parallels = argv.p;
@@ -22,13 +22,14 @@ function setup(params) {
         // Assuming lock
         argv.l = true;
     }
-
+    return argv;
+}
+function setup(params) {
     // Check if given target is valid
     if (!fs.existsSync(argv.target)) {
         console.error('You must provide a valid target.');
         process.exit(1);
     }
-
     return argv;
 }
 function deleteFile(file, cb) {
@@ -106,6 +107,12 @@ function pushIfQualified(file) {
     }
     list.push(file);
 }
+function getTotalSize() {
+    list.forEach(file => {
+        let size = fs.statSync(file).size;
+        total = total + size
+    });
+}
 function multi(dir) {
     if (argv.r) {
         recursive(dir, function (err, files) {
@@ -113,8 +120,9 @@ function multi(dir) {
             files.forEach(file => {
                 pushIfQualified(file);
             })
-            total = list.length;
-            current = list.length;
+            
+            getTotalSize();
+            current = 0;
             loadingBar.start(total, 0);
             processAll(list);
         });
@@ -130,13 +138,21 @@ function multi(dir) {
                         pushIfQualified(file)
                     }
                 });
-                total = list.length;
-                current = list.length;
+                getTotalSize();
+                current = 0;
                 loadingBar.start(total, 0);
                 processAll(list);
             }
         });
     }
+}
+function updateProgress(chunk) {
+    current = current + chunk.length;
+    loadingBar.update(current);
+    if (current == total) {
+        loadingBar.stop();
+    }
+    return chunk
 }
 function single(file) {
     if (argv.l) {
@@ -148,18 +164,18 @@ function single(file) {
             if (fs.existsSync(file + ext)) {
                 fs.unlinkSync(file + ext);
             }
-            lock(file, file + ext, argv.secret)
-            .then(result => {
-                if (!argv.k) {
-                    deleteFile(file, () => {
-                        rename(file + ext, file, () => {
-                            inProgress--;
-                        });
-                    })
-                }
-            }).catch(result => {
-                inProgress--;
-            });
+            lock(file, file + ext, argv.secret, updateProgress)
+                .then(result => {
+                    if (!argv.k) {
+                        deleteFile(file, () => {
+                            rename(file + ext, file, () => {
+                                inProgress--;
+                            });
+                        })
+                    }
+                }).catch(result => {
+                    inProgress--;
+                });
         }
     } else {
         if (argv.x) {
@@ -171,23 +187,19 @@ function single(file) {
                 fs.unlinkSync(file + ext);
             }
             unlock(file, file + ext, argv.secret)
-            .then(result => {
-                if (!argv.k) {
-                    deleteFile(file, () => {
-                        rename(file + ext, file, () => {
-                            inProgress--;
-                        });
-                    })
-                }
-            }).catch(result => {
-                inProgress--;
-            });
+                .then(result => {
+                    if (!argv.k) {
+                        deleteFile(file, () => {
+                            rename(file + ext, file, () => {
+                                inProgress--;
+                            });
+                        })
+                    }
+                }).catch(result => {
+                    inProgress--;
+                });
         }
     }
-    current--;
-    loadingBar.update(total - current);
-    if (current == 0) loadingBar.stop();
-    // console.log('[' + current + '/' + total + ']');
 }
 exports.deleteFile = deleteFile;
 exports.rename = rename;
@@ -197,3 +209,4 @@ exports.processAll = processAll;
 exports.pushIfQualified = pushIfQualified;
 exports.single = single;
 exports.multi = multi;
+exports.etlParams = etlParams;
