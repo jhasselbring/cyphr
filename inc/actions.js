@@ -186,7 +186,7 @@ function single(file) {
             if (fs.existsSync(file + ext)) {
                 fs.unlinkSync(file + ext);
             }
-            unlock(file, file + ext, argv.secret)
+            unlock(file, file + ext, argv.secret, updateProgress)
                 .then(result => {
                     if (!argv.k) {
                         deleteFile(file, () => {

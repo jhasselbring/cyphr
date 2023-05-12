@@ -1,6 +1,6 @@
 {
   "name": "cyphr",
-  "version": "4.0.0",
+  "version": "4.0.2",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "cli-progress": "^3.11.2",
-    "cyphr-locker": "file:../cyphr-locker",
+    "cyphr-locker": "^4.0.3",
     "minimist": "^1.2.6",
     "recursive-readdir": "^2.2.2"
   },
